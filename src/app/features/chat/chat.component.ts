@@ -1,4 +1,5 @@
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
+import { interval, Subscription } from 'rxjs';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -14,14 +15,27 @@ export interface ChatMessage {
 })
 export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   @ViewChild('messagesContainer') private messagesContainer!: ElementRef;
+  @ViewChild('chatInput') private chatInput!: ElementRef<HTMLTextAreaElement>;
 
   messages: ChatMessage[] = [];
   userInput = '';
-  isConnected = false;
+  isConnected = true;
   isLoading = false;
 
+  inputExpanded = false;
+  avatarSrc = 'assets/images/leo-avatar-new.jpg';
+  private readonly avatars = [
+    'assets/images/leo-avatar-new.jpg',
+    'assets/images/leo-avatar-new2.jpeg'
+  ];
+  private avatarIndex = 0;
+  private avatarSub!: Subscription;
+
   ngOnInit(): void {
-    // SignalR connection will be initialised here
+    this.avatarSub = interval(2000).subscribe(() => {
+      this.avatarIndex = (this.avatarIndex + 1) % this.avatars.length;
+      this.avatarSrc = this.avatars[this.avatarIndex];
+    });
   }
 
   ngAfterViewChecked(): void {
@@ -29,6 +43,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   ngOnDestroy(): void {
+    this.avatarSub?.unsubscribe();
     // Disconnect SignalR here
   }
 
@@ -41,6 +56,10 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.isLoading = true;
 
     // SignalR send will go here
+  }
+
+  onChatMouseDown(): void {
+    setTimeout(() => this.chatInput?.nativeElement.focus(), 0);
   }
 
   onKeydown(event: KeyboardEvent): void {
