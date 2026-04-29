@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
 import { interval, Subscription } from 'rxjs';
+import { ChatService } from '../../core/services/chat.service';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -26,10 +27,14 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   avatarSrc = 'assets/images/leo-avatar-new.jpg';
   private readonly avatars = [
     'assets/images/leo-avatar-new.jpg',
+    'assets/images/leo-avatar-new3.jpeg',
     'assets/images/leo-avatar-new2.jpeg'
   ];
   private avatarIndex = 0;
   private avatarSub!: Subscription;
+  private chatSub?: Subscription;
+
+  constructor(private chatService: ChatService) {}
 
   ngOnInit(): void {
     this.avatarSub = interval(2000).subscribe(() => {
@@ -44,7 +49,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   ngOnDestroy(): void {
     this.avatarSub?.unsubscribe();
-    // Disconnect SignalR here
+    this.chatSub?.unsubscribe();
   }
 
   sendMessage(): void {
@@ -55,7 +60,16 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.userInput = '';
     this.isLoading = true;
 
-    // SignalR send will go here
+    this.chatSub = this.chatService.sendMessage(text).subscribe({
+      next: (res) => {
+        this.messages.push({ role: 'assistant', content: res.reply, timestamp: new Date() });
+        this.isLoading = false;
+      },
+      error: () => {
+        this.messages.push({ role: 'assistant', content: 'Something went wrong. Please try again.', timestamp: new Date() });
+        this.isLoading = false;
+      }
+    });
   }
 
   onChatMouseDown(): void {
